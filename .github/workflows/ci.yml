@@ -1,0 +1,40 @@
+name: Python tests and Docker smoke test
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-build-smoke:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get repository code
+        uses: actions/checkout@v7
+
+      - name: Install Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      - name: Run automatic unit and HTTP tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Build Docker image
+        run: docker build -t student-marks:ci .
+
+      - name: Start temporary Docker container
+        run: docker run --detach --name marks-ci --publish 127.0.0.1:8000:5000 student-marks:ci
+
+      - name: Smoke test via published host port
+        run: |
+          curl --fail --silent --show-error --retry 12 --retry-connrefused --retry-delay 1 http://127.0.0.1:8000/health
+          curl --fail --silent --show-error 'http://127.0.0.1:8000/grade?marks=85' | python -c 'import json,sys; assert json.load(sys.stdin)["result"] == "Pass"'
+
+      - name: Clean up temporary container
+        if: always()
+        run: docker rm -f marks-ci || true
