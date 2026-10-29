@@ -19,7 +19,7 @@ jobs:
       - name: Install Python
         uses: actions/setup-python@v7
         with:
-          python-version: '3.12'
+          python-version: "3.12"
 
       - name: Run automatic unit and HTTP tests
         run: python -m unittest discover -s tests -v
@@ -32,7 +32,7 @@ jobs:
 
       - name: Smoke test via published host port
         run: |
-          curl --fail --silent --show-error --retry 12 --retry-connrefused --retry-delay 1 http://127.0.0.1:8000/health
+          curl --fail --silent --show-error --retry 12 --retry-all-errors --retry-delay 1 http://127.0.0.1:8000/health
           curl --fail --silent --show-error 'http://127.0.0.1:8000/grade?marks=85' | python -c 'import json,sys; assert json.load(sys.stdin)["result"] == "Pass"'
 
       - name: Clean up temporary container
